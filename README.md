@@ -1,6 +1,6 @@
 # UpdateKit
 
-[![](https://jitpack.io/v/YOUR_USERNAME/update-kit.svg)](https://jitpack.io/#YOUR_USERNAME/update-kit)
+[![](https://jitpack.io/v/iamhariomsharma/update-kit.svg)](https://jitpack.io/#iamhariomsharma/update-kit)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Android API](https://img.shields.io/badge/API-26%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=26)
 
@@ -39,7 +39,7 @@ Add UpdateKit to your app's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.YOUR_USERNAME:update-kit:1.0.0")
+    implementation("com.github.iamhariomsharma:update-kit:1.0.0")
 }
 ```
 
@@ -314,8 +314,8 @@ limitations under the License.
 
 ## 💬 Questions?
 
-Open an issue on GitHub or contact [@YOUR_USERNAME](https://github.com/YOUR_USERNAME)
+Open an issue on GitHub or contact [@iamhariomsharma](https://github.com/iamhariomsharma)
 
 ---
 
-**Made with ❤️ by [Hariom Sharma](https://github.com/YOUR_USERNAME)**
+**Made with ❤️ by [Hariom Sharma](https://github.com/iamhariomsharma)**

@@ -31,13 +31,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.viewmodel.koinViewModel
+import com.heckteck.updatekit.UpdateKit
 
 /**
  * Main composable for app update dialogs.
  *
  * This automatically checks for updates on launch and shows appropriate dialogs when needed.
  * For force updates that can't be handled by Play Store, shows a custom non-dismissible dialog.
+ *
+ * No dependency injection framework required - uses UpdateKit singleton.
  *
  * @param packageName The app's package name (e.g., BuildConfig.APPLICATION_ID)
  * @param onDismiss Callback when dialog is dismissed (only for flexible updates)
@@ -47,7 +49,7 @@ fun AppUpdateDialog(
     packageName: String,
     onDismiss: () -> Unit = {}
 ) {
-    val viewModel: AppUpdateViewModel = koinViewModel()
+    val viewModel = UpdateKit.getViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -69,9 +71,9 @@ fun AppUpdateDialog(
 @Composable
 internal fun ForceUpdateDialog(
     packageName: String,
-    modifier: Modifier = Modifier,
-    viewModel: AppUpdateViewModel = koinViewModel()
+    modifier: Modifier = Modifier
 ) {
+    val viewModel = UpdateKit.getViewModel()
     val context = LocalContext.current
 
     BasicAlertDialog(

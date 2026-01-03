@@ -71,11 +71,6 @@ dependencies {
     api(libs.play.app.update)
     api(libs.play.app.update.ktx)
 
-    // Koin for dependency injection (required)
-    api(libs.koin.android)
-    api(libs.koin.androidx.compose)
-    api(libs.koin.core)
-
     // Timber for logging (required)
     implementation(libs.timber)
 
@@ -97,14 +92,14 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.github.YOUR_USERNAME"
-                artifactId = "updatekit"
+                groupId = "com.github.iamhariomsharma"
+                artifactId = "update-kit"
                 version = "1.0.0"
 
                 pom {
                     name.set("UpdateKit - Android Update Manager")
                     description.set("A source-agnostic library for handling Google Play In-App Updates")
-                    url.set("https://github.com/YOUR_USERNAME/updatekit")
+                    url.set("https://github.com/iamhariomsharma/update-kit")
 
                     licenses {
                         license {
@@ -115,16 +110,16 @@ afterEvaluate {
 
                     developers {
                         developer {
-                            id.set("YOUR_USERNAME")
-                            name.set("Your Name")
-                            email.set("your.email@example.com")
+                            id.set("iamhariomsharma")
+                            name.set("Hariom Sharma")
+                            email.set("sharmahariom2644@gmail.com")
                         }
                     }
 
                     scm {
-                        connection.set("scm:git:git://github.com/YOUR_USERNAME/updatekit.git")
-                        developerConnection.set("scm:git:ssh://github.com/YOUR_USERNAME/updatekit.git")
-                        url.set("https://github.com/YOUR_USERNAME/updatekit")
+                        connection.set("scm:git:git://github.com/iamhariomsharma/update-kit.git")
+                        developerConnection.set("scm:git:ssh://github.com/iamhariomsharma/update-kit.git")
+                        url.set("https://github.com/iamhariomsharma/update-kit")
                     }
                 }
             }

@@ -2,76 +2,46 @@ package com.heckteck.updatekit
 
 import android.app.Application
 import com.heckteck.updatekit.data.AppUpdateRepositoryImpl
-import com.heckteck.updatekit.data.IAppUpdateRepository
 import com.heckteck.updatekit.data.InAppUpdateManager
 import com.heckteck.updatekit.ui.AppUpdateViewModel
-import org.koin.android.ext.koin.androidContext
-import org.koin.core.context.startKoin
-import org.koin.core.module.dsl.singleOf
-import org.koin.core.module.dsl.viewModelOf
-import org.koin.dsl.bind
-import org.koin.dsl.module
 import timber.log.Timber
 
 /**
  * Main entry point for UpdateKit.
  *
- * UpdateKit provides a complete solution for handling Google Play In-App Updates
- * with a source-agnostic design. You can fetch version requirements from:
- * - Firebase Remote Config
- * - REST API
- * - GraphQL
- * - Local database
- * - Hardcoded values (for testing)
- * - Any custom source
+ * UpdateKit provides a complete, **DI-agnostic** solution for handling Google Play In-App Updates.
+ * No dependency injection framework required!
  *
- * ## Quick Start
+ * ## Quick Start (3 lines of code!)
  *
- * ### 1. Choose or create an [UpdateVersionProvider]
- * ```kotlin
- * // Option A: Firebase Remote Config
- * val firebaseConfig = Firebase.remoteConfig
- * val versionProvider = FirebaseUpdateVersionProvider(
- *     firebaseRemoteConfig = firebaseConfig,
- *     currentVersionCode = BuildConfig.VERSION_CODE
- * )
- *
- * // Option B: Static values (testing)
- * val versionProvider = StaticUpdateVersionProvider(
- *     currentVersionCode = BuildConfig.VERSION_CODE,
- *     forceUpdateBelowVersion = 10,
- *     recommendedUpdateBelowVersion = 15
- * )
- *
- * // Option C: Your own implementation
- * class MyApiVersionProvider : UpdateVersionProvider { ... }
- * ```
- *
- * ### 2. Initialize in your Application class
+ * ### 1. Initialize in Application class
  * ```kotlin
  * class MyApp : Application() {
  *     override fun onCreate() {
  *         super.onCreate()
  *
+ *         val versionProvider = StaticUpdateVersionProvider(
+ *             currentVersionCode = BuildConfig.VERSION_CODE,
+ *             forceUpdateBelowVersion = 10,
+ *             recommendedUpdateBelowVersion = 15
+ *         )
+ *
  *         UpdateKit.initialize(
  *             application = this,
- *             versionProvider = versionProvider,
- *             config = Config(
- *                 enableDebugLogging = BuildConfig.DEBUG
- *             )
+ *             versionProvider = versionProvider
  *         )
  *     }
  * }
  * ```
  *
- * ### 3. Initialize in your MainActivity
+ * ### 2. Initialize in MainActivity
  * ```kotlin
  * class MainActivity : ComponentActivity() {
- *     private val updateManager: InAppUpdateManager by inject()
- *
  *     override fun onCreate(savedInstanceState: Bundle?) {
  *         super.onCreate(savedInstanceState)
- *         updateManager.initialize(this)
+ *
+ *         // Initialize update manager for this activity
+ *         UpdateKit.getManager().initialize(this)
  *
  *         setContent {
  *             AppUpdateDialog(packageName = BuildConfig.APPLICATION_ID)
@@ -80,102 +50,44 @@ import timber.log.Timber
  *
  *     override fun onResume() {
  *         super.onResume()
- *         updateManager.checkAndRetriggerImmediateUpdateIfNeeded()
+ *         UpdateKit.getManager().checkAndRetriggerImmediateUpdateIfNeeded()
  *     }
  *
  *     override fun onDestroy() {
  *         super.onDestroy()
- *         updateManager.cleanup()
+ *         UpdateKit.getManager().cleanup()
  *     }
  * }
  * ```
  *
+ * That's it! No DI setup needed! 🎉
+ *
  * ## Features
  *
+ * - ✅ **DI-Agnostic**: No dependency injection framework required
  * - ✅ **Source-agnostic**: Fetch version requirements from anywhere
+ * - ✅ **Minimal API**: Just 2 method calls to set up
  * - ✅ **Flexible & Immediate updates**: Supports both update types
  * - ✅ **Session tracking**: Avoids showing flexible updates multiple times
- * - ✅ **Cooldown periods**: Prevents update prompts from being annoying
- * - ✅ **Installation monitoring**: Tracks update progress with timeout handling
  * - ✅ **Material3 UI**: Beautiful, ready-to-use dialogs
- * - ✅ **Stalled update recovery**: Resumes interrupted updates
- * - ✅ **Play Store fallback**: Opens Play Store if in-app update fails
- *
- * ## Update Types
- *
- * - **IMMEDIATE**: User must update before continuing to use the app
- * - **FLEXIBLE**: User can update in the background while using the app
- * - **NO_UPDATE**: App is up to date
- *
- * The update type is determined by comparing the current app version with
- * the thresholds provided by your [UpdateVersionProvider].
+ * - ✅ **Zero boilerplate**: Works with Koin, Dagger, Hilt, or manual DI
  */
 object UpdateKit {
 
-    /**
-     * Create a Koin module for UpdateKit.
-     *
-     * **Use this if your app already uses Koin.** Include this module in your app's
-     * existing `startKoin {}` block.
-     *
-     * ## Example:
-     * ```kotlin
-     * class MyApp : Application() {
-     *     override fun onCreate() {
-     *         super.onCreate()
-     *
-     *         val versionProvider = FirebaseUpdateVersionProvider(...)
-     *
-     *         startKoin {
-     *             androidContext(this@MyApp)
-     *             modules(
-     *                 myAppModule,  // Your app's module
-     *                 UpdateKit.createModule(versionProvider)  // UpdateKit's module
-     *             )
-     *         }
-     *     }
-     * }
-     * ```
-     *
-     * @param versionProvider Provider for app version and update thresholds
-     * @param config Optional configuration for UpdateKit
-     * @return Koin Module containing all UpdateKit dependencies
-     */
-    fun createModule(
-        versionProvider: UpdateVersionProvider,
-        config: Config = Config()
-    ) = module {
-        Timber.d("🚀 Creating UpdateKit module")
-        Timber.d("   Version Provider: ${versionProvider::class.simpleName}")
-        Timber.d("   Debug Logging: ${config.enableDebugLogging}")
-
-        // Provide the version provider as a singleton
-        single { versionProvider }
-
-        // Provide the config
-        single { config }
-
-        // Repository
-        singleOf(::AppUpdateRepositoryImpl) bind IAppUpdateRepository::class
-
-        // Update Manager
-        singleOf(::InAppUpdateManager)
-
-        // ViewModel
-        viewModelOf(::AppUpdateViewModel)
-    }
+    private var updateManager: InAppUpdateManager? = null
+    private var viewModel: AppUpdateViewModel? = null
+    private var application: Application? = null
+    private var config: Config = Config()
 
     /**
-     * Initialize UpdateKit (for apps that don't use Koin yet).
+     * Initialize UpdateKit.
      *
-     * **Use this only if your app doesn't use Koin.** If your app already uses Koin,
-     * use [createModule] instead and include it in your existing `startKoin {}` block.
+     * Call this once in your Application class's onCreate() method.
      *
      * @param application The Application instance
      * @param versionProvider Provider for app version and update thresholds
-     * @param config Optional configuration for the library
+     * @param config Optional configuration for UpdateKit
      *
-     * @see createModule for apps that already use Koin
      * @see UpdateVersionProvider
      * @see Config
      */
@@ -184,20 +96,63 @@ object UpdateKit {
         versionProvider: UpdateVersionProvider,
         config: Config = Config()
     ) {
-        Timber.d("🚀 Initializing UpdateKit (standalone mode)")
-
-        try {
-            startKoin {
-                androidContext(application)
-                modules(
-                    createModule(versionProvider, config)
-                )
-            }
-            Timber.d("✅ UpdateKit initialized successfully")
-        } catch (e: Exception) {
-            Timber.e(e, "❌ Failed to initialize UpdateKit")
-            throw e
+        if (updateManager != null) {
+            Timber.w("⚠️ UpdateKit is already initialized")
+            return
         }
+
+        Timber.d("🚀 Initializing UpdateKit")
+        Timber.d("   Version Provider: ${versionProvider::class.simpleName}")
+        Timber.d("   Debug Logging: ${config.enableDebugLogging}")
+        Timber.d("   Cooldown Minutes: ${config.updateCheckCooldownMinutes}")
+
+        this.application = application
+        this.config = config
+
+        // Create dependencies manually (no DI framework required!)
+        val repository = AppUpdateRepositoryImpl(versionProvider)
+        updateManager = InAppUpdateManager(repository)
+        viewModel = AppUpdateViewModel(updateManager!!)
+
+        Timber.d("✅ UpdateKit initialized successfully")
+    }
+
+    /**
+     * Get the update manager instance.
+     *
+     * Use this to control updates in your Activity.
+     *
+     * @return The InAppUpdateManager instance
+     * @throws IllegalStateException if UpdateKit is not initialized
+     */
+    fun getManager(): InAppUpdateManager {
+        return updateManager ?: error("UpdateKit not initialized. Call UpdateKit.initialize() first in your Application class.")
+    }
+
+    /**
+     * Get the ViewModel instance for update UI.
+     *
+     * Used internally by AppUpdateDialog. Apps typically don't need to call this.
+     *
+     * @return The AppUpdateViewModel instance
+     * @throws IllegalStateException if UpdateKit is not initialized
+     */
+    internal fun getViewModel(): AppUpdateViewModel {
+        return viewModel ?: error("UpdateKit not initialized. Call UpdateKit.initialize() first in your Application class.")
+    }
+
+    /**
+     * Get the current configuration.
+     */
+    fun getConfig(): Config {
+        return config
+    }
+
+    /**
+     * Get the Application instance.
+     */
+    internal fun getApplication(): Application {
+        return application ?: error("UpdateKit not initialized.")
     }
 
     /**
